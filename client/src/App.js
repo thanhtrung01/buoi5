@@ -2,13 +2,11 @@ import React, { Component } from "react";
 import ItemManagerContract from "./contracts/ItemManager.json";
 import ItemContract from "./contracts/Item.json";
 import getWeb3 from "./getWeb3";
-// import React, { Component } from 'react';
 
-// import ListAddress from "./components/ListAddress.js";
 import "./App.css";
 
 class App extends Component {
-  state = { loaded:false, cost:0, itemName: "Supplychain_example_1"};
+  // state = { loaded:false, cost:0, itemName: "Supplychain_example_1"};
 
   componentDidMount = async () => {
     try {
@@ -51,14 +49,14 @@ class App extends Component {
     this.itemManager.events.SupplyChainStep().on("data", async function(evt) {
       console.log(evt);
       let itemObject = await self.itemManager.methods.items(evt.returnValues._itemIndex).call();
-      alert("Item" + itemObject._identifier + " đã được trả tiền, giao nó ngay bây giờ");
+      alert("Item " + itemObject._identifier + " đã được trả tiền, giao nó ngay bây giờ");
     });
 
   }
   constructor(props) {
     super(props);
     this.state = {
-      listAddress: []
+      listAddress: undefined || []
     }
   }
   handleInputChange = (event) => {
@@ -68,7 +66,7 @@ class App extends Component {
     const cost = target.cost;
     this.setState({
       [name]:value,
-      [cost]:value
+      [cost]:value,
     });
   }
 
@@ -76,25 +74,22 @@ class App extends Component {
     const {cost, itemName} = this.state;
     let result = await this.itemManager.methods.createItem(itemName, cost).send({from:this.accounts[0]});
     console.log(result);
-    alert("gửi "+cost+" đến "+result.events.SupplyChainStep.returnValues._itemAddress);
+    alert("gửi "+cost+" đến "+result.events.SupplyChainStep.returnValues._itemAddress+" với tên "+itemName);
+    const objItem = {cost, itemName, _itemAddress: result.events.SupplyChainStep.returnValues._itemAddress}
+    this.setState({
+      listAddress: [...this.state.listAddress, objItem],
+    });
   }
-  
-  // xem lịch sử giao dịch trên trang ethereum
-  // onClick = async() => {
-  //   const address = window.ethereum.selectedAddress;
-  //   if (address === null) {
-  //     console.log(window.ethereum.selectedAddress)
-  //   }
-  // };
+
   render() {
+    // console.log(this.state.listAddress)
     
     if (!this.state.loaded) {
-      return <div className="connecting">connecting...</div>;
+      return <div className="connecting">connecting...</div>
     }
-    // const {cost, itemName, _itemAddress} = this.state;
-    const listAddress = this.state.listAddress.map((cost, itemName, _itemAddress) => {
+    const listAddress = this.state.listAddress.map((cost, index, _itemAddress) => {
       return(
-                <AddressItem stt={_itemAddress+1} cate={cost}  name={itemName} address={_itemAddress}/>
+                <AddressItem stt={index + 1} data={cost} />
             ) 
       })
     return (
@@ -102,8 +97,8 @@ class App extends Component {
         <h1>BÀI GIỮA KÌ</h1>  
         <div className="item-add-address">
           <div className="add-item">
-            Cost in wei: <input type="text" name ="cost" value={this.state.cost} onChange={this.handleInputChange} />
-            Item Identifier: <input type="text" name ="itemName" value={this.state.itemName} onChange={this.handleInputChange} />
+            Cost in wei: <input type="text" name ="cost" placeholder="0" value={this.state.cost} onChange={this.handleInputChange} />
+            Item Identifier: <input type="text" name ="itemName" placeholder="Nhập tên..." value={this.state.itemName} onChange={this.handleInputChange} />
             <button type="button" onClick={this.handleSubmit}>Create new</button>
           </div>
           <div className="item-owner">
@@ -119,6 +114,7 @@ class App extends Component {
               </button>
             </div>
           </div>
+          <div className="count">(Có {this.state.listAddress.length} tài khoản)</div>
           <table className="content-table">
             <thead>
               <tr>
@@ -141,13 +137,21 @@ class App extends Component {
 export default App;
 class AddressItem extends Component {
   render() {
-    let {cate} = this.props;
+    let {data, stt} = this.props;
+    console.log(this.props)
     return (
-        <tr>
-            <td>{this.props.stt}</td>
-            <td>{cate.cost}</td>
-            <td>{cate.itemName}</td>
-            <td>{cate._itemAddress}</td>
+        <tr className="render" key={data}>
+            <td>{stt}</td>
+            <td>{data.cost}</td>
+            <td>{data.itemName}</td>
+            <td>{data._itemAddress}
+              <button title="Xem địch chỉ address trên ethereum" type="button" onClick={() =>
+                window.open(
+                  `https://etherscan.io/address/${data._itemAddress}`,
+                )
+              }>View ethereum
+              </button>
+            </td>
         </tr>
         );
     }
